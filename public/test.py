@@ -26,7 +26,7 @@ def convert_to_json(input_file, output_file):
         json.dump(data_list, json_file, indent=2)
 
 if __name__ == "__main__":
-    input_file = "1.txt"
-    output_file = "data.json"
+    input_file = "4.txt"
+    output_file = "data4.json"
 
     convert_to_json(input_file, output_file)
