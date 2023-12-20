@@ -109,14 +109,13 @@ export default {
         [39.906308, 116.391264],
       ],
       points_test: [
-        
       ],
 
       playIsShow: true, //播放/暂停
       multipleNumber: 1, //倍速
       progress: 0, //进度
       marker: null,
-      polyline: null,
+      polyline1: null,
       duration: 0,
       timer: null, //定时器
       time: 800, //定时器速度,
@@ -185,16 +184,18 @@ export default {
     async updatePoints() {
       try {
         // Fetch JSON data from 1.json
-        for(var i = 1; i <= 4; i++){
+        for(var i = 1; i <= 1; i++){
 
           console.log("/data"+i+".json");
           const response = await fetch("/data"+i+".json");
 
           const jsonData = await response.json();
+
+
           
-          console.log(jsonData);
-          // Update points array with latitude and longitude from JSON data
-          var points_t = await jsonData.map((entry) => [entry.latitude, entry.longitude]);
+          var points_t = await jsonData.map((entry) => [entry[1]-0.0012, entry[0]-0.006]);
+
+          console.log(points_t);
           this.points_test.push(points_t)
           console.log(this.points_test);
         }
@@ -232,12 +233,13 @@ export default {
       });
       this.marker = L.marker(this.points[0], { icon: icon }).addTo(this.map);
 
-      console.log(this.points);
+    
       this.polyline = L.polyline(this.points, { color: "red" }).addTo(this.map);
 
-      console.log(this.points_test);
-
-      for(var i =0;i<this.points_test.length;i++){
+   
+     
+      for(var i =0;i<this.points_test.length;i++){    
+    
         this.polyline1 = L.polyline(this.points_test[i], { color: "blue",weight: 2 }).addTo(this.map);
       }
       // this.polyline1 = L.polyline(this.points_test, { color: "blue",weight: 2 }).addTo(this.map);
