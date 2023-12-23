@@ -6,9 +6,10 @@
 <script>
 //添加秘钥
 window._AMapSecurityConfig = {
-  securityJsCode: "09d8f7a8b726c82961b2a70cb053249d",
+  securityJsCode: "fb8c4c604948be159451a77848affd73",
 };
 import AMapLoader from "@amap/amap-jsapi-loader";
+
 export default {
   data() {
     return {
@@ -26,18 +27,20 @@ export default {
     });
   },
   methods: {
+    sleep(time) {
+      return new Promise((resolve) => setTimeout(resolve, time));
+    },
      async updatePoints() {
       try {
         // Fetch JSON data from 1.json
         for(var i = 1; i <= 10; i++){
-          console.log("/dataAmp"+i+".json");
-          const response = await fetch("/dataAmp"+i+".json");
+          console.log("/datAmp"+i+".json");
+          const response = await fetch("/datAmp"+i+".json");
 
           const jsonData = await response.json();
           
           // Update points array with latitude and longitude from JSON data
 
-          dict={}
           var points_t = await jsonData.map((entry) => {
               return {"pos":[entry.longitude, entry.latitude],"distance":entry.speed,"time":entry.time}
           });
@@ -54,7 +57,7 @@ export default {
         //read json
       let _this = this;
       AMapLoader.load({
-        key: "e72a9fc1373fbf6154f303bc4d4fe2e0", //设置您的key
+        key: "0d7d4de087458a89e3dc26d9529eb152", //设置您的key
         version: "2.0",
         plugins: ["AMap.ToolBar", "AMap.Driving"],
      
@@ -75,27 +78,62 @@ export default {
           // 根据起终点经纬度规划驾车导航路线
           
          
-            // var start = 0;
-            // var end = 15;
-            // var watpoinslist = [];
-            // let i = 0;
-            // while(end<_this.points_test[i].length){
-            //     for(var j = start+1; j < end; j++){
-            //         watpoinslist.push(new AMap.LngLat(_this.points_test[i][j][1],_this.points_test[i][j][0]));
-            //     }
-            //     await driving.search(new AMap.LngLat(_this.points_test[i][start][1],_this.points_test[i][start][0]),new AMap.LngLat(_this.points_test[i][end][1],_this.points_test[i][end][0]), {
-            //         waypoints: watpoinslist
-            //     }, function (status, result) {
-            //     // 未出错时，result即是对应的路线规划方案
-            //     console.log(result);
-            //     _this.drawRoute(result.routes[0]);
-            //     });
-            //     start = end;
-            //     end = end + 15;
-            //     watpoinslist = [];
-            //     this.path.push([0,0]);
-            // }
-            // console.log(this.path)
+          
+            for (var i = 0; i < _this.points_test.length; i++){
+                var start = 0;
+                var end = 15;
+                var watpoinslist = [];
+                
+                var route=_this.points_test[i];
+
+                var list=[];
+                while(end<route.length){
+                    var ans={};
+                    ans["start"] = route[start].pos;
+                    ans["end"] = route[end].pos;
+                    ans["start_time"]=route[start].time;
+                    ans["end_time"]=route[end].time;
+                    for(var j = start+1; j < end; j++){
+                        watpoinslist.push(route[j].pos);
+                    }
+                    await driving.search(route[start].pos,route[end].pos, {
+                        waypoints: watpoinslist
+                    }, function (status, result) {
+                    // 未出错时，result即是对应的路线规划方案
+                      console.log(status)
+                      if(status == "complete"){
+                        console.log(result);
+         
+                        ans["info"]=_this.parseRouteToPath(result.routes[0]);
+                        
+                        list.push(ans);
+                      }
+                      else{
+                        console.log('获取驾车数据失败：' + result)
+                      }
+                    // console.log(result);
+                    // _this.drawRoute(result.routes[0]);
+                    });
+                    start = end;
+                    end = end + 15;
+                    watpoinslist = [];
+                    await _this.sleep(40);
+                    
+                }
+                _this.points_amap.push(list);
+
+            }
+            console.log("==============================")
+            console.log(_this.points_amap);
+
+            const  blob = new Blob([JSON.stringify(_this.points_amap)], {type : 'application/json'});
+            const  link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'data.json';
+            link.click();
+
+
+
            
            
         })
@@ -119,18 +157,26 @@ export default {
       this.map.setFitView([ routeLine]);
     },
     parseRouteToPath(route) {
+      var allinfo={}
+      var list  = [];
       var path = [];
-      var newRoute=[];
       for (var i = 0, l = route.steps.length; i < l; i++) {
         var step = route.steps[i];
+        var dict ={}
+        dict["distance"] = step.distance;
+        dict["time"] = step.time;
+        dict["path"] = step.path;
+        dict["start_location"] = step.start_location;
+        dict["end_location"] = step.end_location;
+        list.push(dict);
         for (var j = 0, n = step.path.length; j < n; j++) {
-          this.path.push(step.path[j]);
-    
+          path.push(step.path[j]);
         }
       }
-    
-    console.log(path);
-    return path;
+      allinfo["list"] = list;
+      allinfo["path"] = path;
+  
+    return allinfo;
     },
   },
 };
