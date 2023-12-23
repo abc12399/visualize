@@ -184,7 +184,7 @@ export default {
     async updatePoints() {
       try {
         // Fetch JSON data from 1.json
-        for(var i = 1; i <= 1; i++){
+        for(var i = 1; i <= 10; i++){
 
           console.log("/data"+i+".json");
           const response = await fetch("/data"+i+".json");
@@ -238,7 +238,7 @@ export default {
 
    
      
-      for(var i =0;i<this.points_test.length;i++){    
+      for(var i =0;i<1;i++){    
     
         this.polyline1 = L.polyline(this.points_test[i], { color: "blue",weight: 2 }).addTo(this.map);
       }
