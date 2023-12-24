@@ -1,329 +1,238 @@
 <template>
-    <div>
-      <div class="leftRightBox">
-        <!-- 左 -->
-        <div class="oilMap" id="map"></div>
-        <!-- 右 -->
-        <div class="rightTxtBox">
-          <el-card class="box-card">
-            <!-- 播放轨迹 -->
-            <div class="trackBox">
-              <div>
-                <i
-                  title="播放"
-                  v-if="playIsShow"
-                  @click="playPauseOn"
-                  class="el-icon-video-play"
-                ></i>
-                <i
-                  title="暂停"
-                  v-else
-                  @click="playPauseOn"
-                  class="el-icon-video-pause"
-                ></i>
-              </div>
-              <div>
-                <el-slider
-                  :min="0"
-                  :max="points.length - 1"
-                  @change="sliderOn"
-                  v-model="progress"
-                ></el-slider>
-                <!-- replace the code before using elementui  with elementplus -->
-              </div>
-            </div>
-            <div class="multipleBox">
-              <span>倍速：</span>
-              <el-select
-                @change="multipleOn"
-                style="width: 70px"
-                size="small"
-                v-model="multipleNumber"
-                placeholder="请选择倍速"
-              >
-                <el-option
-                  v-for="item in multipleOptions"
-                  :key="item.multipleNumber"
-                  :label="item.label"
-                  :value="item.value"
-                >
-                </el-option>
-              </el-select>
-            </div>
-          </el-card>
-          <el-card class="aggregated-info">
-            一环内车流量：{{ sum }} <br>
-            二环内车流量：{{ sum }} <br>
-            三环内车流量：{{ sum }}
-          </el-card>
-        </div>
-      </div>
-    </div>
-  </template>
-  
-  <script>
-  import LMap from "../utils/index.js";
-  import areaGeo from "../utils/beijing.json";
-  import abnormal from "../assets/temp.jpg"; //地图图标
-  export default {
-    data() {
-      return {
-        multipleOptions: [
-          {
-            value: 800,
-            label: "1",
-          },
-          {
-            value: 550,
-            label: "1.5",
-          },
-          {
-            value: 400,
-            label: "2",
-          },
-        ],
-        map: null,
-        lmap: new LMap(), //地图公共方法封装
-        labelGroup: null, //文本图层
-        tipsLayerGroup: null, //tips
-        bondarylayer: null, //geojson 图层
-        points: [
-          //模拟点位数据
-          [39.898457, 116.391844],
-          [39.898595, 116.377947],
-          [39.898341, 116.368001],
-          [39.898063, 116.357144],
-          [39.899095, 116.351934],
-          [39.905871, 116.35067],
-          [39.922329, 116.3498],
-          [39.931017, 116.349671],
-          [39.939104, 116.349225],
-          [39.942233, 116.34991],
-          [39.947263, 116.366892],
-          [39.947568, 116.387537],
-          [39.947764, 116.401988],
-          [39.947929, 116.410824],
-          [39.947558, 116.42674],
-          [39.9397, 116.427338],
-          [39.932404, 116.427919],
-          [39.923109, 116.428377],
-          [39.907094, 116.429583],
-          [39.906858, 116.41404],
-          [39.906622, 116.405321],
-          [39.906324, 116.394954],
-          [39.906308, 116.391264],
-        ],
-        points_test: [
-        ],
-  
-        playIsShow: true, //播放/暂停
-        multipleNumber: 1, //倍速
-        progress: 0, //进度
-        marker: null,
-        polyline1: null,
-        duration: 0,
-        timer: null, //定时器
-        time: 800, //定时器速度,
-        min: 0,
-        sum: 0
-      };
-    },
-    mounted() {
-      this.duration = this.points.length - 1;
-      this.updatePoints().then(() => {
-        this.initMap();
-      
-      });
-      
-      //read data from 1.josn  and update on points_test
-      
-    },
-    watch: {
-      progress() {
-        this.updatePosition();
-      },
-    },
-    destroyed() {
-      clearTimeout(this.timer);
-    },
-    methods: {
-      updatePosition() {
-        const position = this.points[this.progress];
-        this.marker.setLatLng(position);
-        this.map.setView(position, 12); //放大比例
-      },
-      // 滑动进度
-      sliderOn(e) {
-        console.log(e, "滑动进度");
-      },
-      // 选择倍速
-      multipleOn(e) {
-        clearTimeout(this.timer);
-        this.time = e;
-        this.recursion();
-      },
-      // 点击播放暂停按钮
-      playPauseOn() {
-        if (this.progress == this.points.length - 1) {
-          this.progress = 0;
+  <div id="container"></div>
+  <div id="panel">
+    <el-card class="aggregated-info">
+      二环内车流量：{{ sum[0] }} <br>
+      三环内车流量：{{ sum[1] }} <br>
+      四环内车流量：{{ sum[2] }} <br>
+    </el-card>
+  </div>
+</template>
+
+<script>
+//添加秘钥
+window._AMapSecurityConfig = {
+  securityJsCode: "09d8f7a8b726c82961b2a70cb053249d",
+};
+import AMapLoader from "@amap/amap-jsapi-loader";
+export default {
+  data() {
+    return {
+      map: null,
+      driving: null,
+      points_test: [],
+      points_t: [],
+      path: [],
+      points_amap: [],
+      sum: [0, 0, 0],
+      sum_cir: [],
+      circles: [],
+      text_cir: []
+    };
+  },
+  mounted() {
+    this.updatePoints().then(() => {
+      this.initMap();
+    });
+  },
+  methods: {
+    async updatePoints() {
+      try {
+        // Fetch JSON data from 1.json
+        for (var i = 1; i <= 10; i++) {
+          // console.log("/datAmp" + i + ".json");
+          const response = await fetch("/datAmp" + i + ".json");
+          const jsonData = await response.json();
+          // Update points array with latitude and longitude from JSON data
+
+          var points_t = await jsonData.map((entry) => {
+            return { "pos": [entry.longitude, entry.latitude], "distance": entry.speed, "time": entry.time }
+          });
+
+          this.points_test.push(points_t)
         }
-        this.playIsShow = !this.playIsShow;
-        this.recursion();
-      },
-      // 递归
-      recursion() {
-        if (!this.playIsShow) {
-          // 模拟数据变化
-          this.timer = setTimeout(() => {
-            this.progress++;
-            if (this.progress >= this.points.length - 1) {
-              this.playIsShow = true;
-              this.polyline = L.polyline(this.points, { color: "red" }).addTo(
-                this.map
-              );
-              clearTimeout(this.timer);
-            }
-            this.recursion();
-          }, this.time);
-        }
-      },
-      async updatePoints() {
-        try {
-          // Fetch JSON data from 1.json
-          for(var i = 1; i <= 1; i++){
-  
-            console.log("/data"+i+".json");
-            const response = await fetch("/data"+i+".json");
-  
-            const jsonData = await response.json();
-  
-  
-            
-            var points_t = await jsonData.map((entry) => [entry[1]-0.0012, entry[0]-0.006]);
-  
-            console.log(points_t);
-            this.points_test.push(points_t)
-            console.log(this.points_test);
+
+        // console.log(this.points_test);
+
+      } catch (error) {
+        console.error("Error fetching or parsing JSON data: /dataAmp" + i + '.json', error);
+      }
+    },
+    initMap() {
+      //read json
+      let _this = this;
+      AMapLoader.load({
+        key: "e72a9fc1373fbf6154f303bc4d4fe2e0", //设置您的key
+        version: "2.0",
+        plugins: ["AMap.ToolBar", "AMap.Driving"],
+
+        Loca: {
+          version: "2.0",
+        },
+      })
+        .then(async (AMap) => {
+          _this.map = new AMap.Map("container", {
+            zoom: 12,
+            zooms: [2, 22],
+            center: [116.391935, 39.895534],
+          });
+          let centers = [
+            [116.317105, 39.960864],
+            [116.384053, 39.958496],
+            [116.446881, 39.962574],
+            [116.304402, 39.911637],
+            [116.389546, 39.912295],
+            [116.466622, 39.914534],
+            [116.323341, 39.85113],
+            [116.409172, 39.850603],
+            [116.476635, 39.846649],
+            [116.395025,40.010545],
+            [116.204481,39.914233],
+            [116.585569,39.91318],
+            [116.405324,39.808557],
+            [116.502141,39.999762],
+            [116.270055,40.0066],
+            [116.241559,39.822797],
+            [116.510725,39.822533],
+            [116.542482,39.940167],
+            [116.548732,39.867834]
+          ]
+          for (let center of centers) {
+            var circle = new AMap.CircleMarker({
+              center: center, //圆心
+              radius: 30, //半径
+              strokeColor: "white", //轮廓线颜色
+              strokeWeight: 2, //轮廓线宽度
+              strokeOpacity: 0.5, //轮廓线透明度
+              fillColor: "rgba(255,0,0,1)", //多边形填充颜色
+              fillOpacity: 1, //多边形填充透明度
+              zIndex: 10, //多边形覆盖物的叠加顺序
+              cursor: "pointer", //鼠标悬停时的鼠标样式
+            });
+            _this.map.add(circle)
+            _this.map.setFitView([circle])
+            _this.sum_cir.push(0)
+            _this.circles.push(circle)
+
+            var text = new AMap.Text({
+              text: '纯文本标记',
+              anchor: 'center', // 设置文本标记锚点
+              draggable: true,
+              cursor: 'pointer',
+              angle: 0,
+              style: {
+                'padding': '.75rem 1.25rem',
+                'margin-bottom': '1rem',
+                'border-radius': '.25rem',
+                'background-color': 'transparent',
+                'width': '15rem',
+                'border-width': 0,
+                // 'box-shadow': '0 2px 6px 0 rgba(114, 124, 245, .5)',
+                'text-align': 'center',
+                'font-size': '20px',
+                'color': 'white'
+              },
+              position: center
+            });
+            text.setMap(_this.map);
+            _this.text_cir.push(text);
           }
-     
-        } catch (error) {
-          console.error("Error fetching or parsing JSON data:", error);
-        }
-      },
-      //初始化地图
-      async initMap() {
-        let { lmap } = this;
-        //配置地图项
-        const mapConfig = {
-          tileUrl: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", //瓦片图层地址
-          crs: L.CRS.EPSG4326,
-          minZoom: 8, //允许缩放最小级别
-          maxZoom: 20, //允许缩放最大级别
-          zoom: 10, //初始化级别
-          center: [39.91, 116.91], //初始化中心点
-        };
-        this.map = await lmap.initMap("map", mapConfig);
-        if (this.map) {
-          this.labelGroup = new L.layerGroup(); //文本图层
-          this.labelGroup.addTo(this.map);
-          this.tipsLayerGroup = new L.layerGroup();
-          this.tipsLayerGroup.addTo(this.map);
-          this.getGeojsonByName(areaGeo, true);
-        } else {
-          console.error("--地图加载失败!!!--");
-        }
-        var icon = L.icon({
-          iconUrl: abnormal,
-          iconSize: [16, 13],
-          iconAnchor: [8, 7],
-        });
-        this.marker = L.marker(this.points[0], { icon: icon }).addTo(this.map);
-  
-      
-        this.polyline = L.polyline(this.points, { color: "red" }).addTo(this.map);
-  
-     
-       
-        for(var i =0;i<this.points_test.length;i++){    
-      
-          this.polyline1 = L.polyline(this.points_test[i], { color: "blue",weight: 2 }).addTo(this.map);
-        }
-        // this.polyline1 = L.polyline(this.points_test, { color: "blue",weight: 2 }).addTo(this.map);
-  
-        setInterval(() => {
-          this.marker.setLatLng(this.points[this.progress]);
-          this.polyline.setLatLngs(this.points.slice(0, this.progress + 1));
-        }, 100);
-      },
-      //加载geojson数据 falg 是否显示名称
-      getGeojsonByName(data, flag) {
-        let _this = this;
-        this.bondarylayer = L.geoJSON(data, {
-          style: {
-            color: "#4e98f444",
-            fillOpacity: 1,
-            weight: 1,
-          },
-          pane: "overlayPane",
-          onEachFeature: (feature, layer) => {
-            // console.log(layer)
-            if (flag) {
-              _this.addText(feature, layer);
+          var path = [[
+            [116.3487, 39.868693],
+            [116.349301, 39.897606],
+            [116.356683, 39.898265],
+            [116.355932, 39.943372],
+            [116.372003, 39.948653],
+            [116.433759, 39.949557],
+            [116.436441, 39.900355],
+            [116.443865, 39.898363],
+            [116.446268, 39.878787],
+            [116.443565, 39.870801],
+            [116.418159, 39.871048],
+            [116.415005, 39.872069],
+          ],
+          [
+            [116.308514, 39.962736],
+            [116.32126, 39.966979],
+            [116.435758, 39.969446],
+            [116.461765, 39.952999],
+            [116.460993, 39.868762],
+            [116.44932, 39.859012],
+            [116.422197, 39.857431],
+            [116.374261, 39.856936],
+            [116.346323, 39.849754],
+            [116.329371, 39.848898],
+            [116.324179, 39.85071],
+            [116.313021, 39.863492],
+          ], [
+            [116.287806, 39.833737],
+            [116.285917, 39.84158],
+            [116.284201, 39.844282],
+            [116.283342, 39.865959],
+            [116.275017, 39.887432],
+            [116.275103, 39.919893],
+            [116.274073, 39.943323],
+            [116.275961, 39.955825],
+            [116.273815, 39.969574],
+            [116.299736, 39.985097],
+            [116.438953, 39.989042],
+            [116.489937, 39.957338],
+            [116.489851, 39.87808],
+            [116.484615, 39.848367],
+            [116.465132, 39.833078],
+            [116.290724, 39.829914],
+            [116.525487,39.967142],
+          ],
+          ];
+          
+          // var polygon = new AMap.Polygon({
+          //   map: _this.map,
+          //   fillOpacity: 0.4,
+          //   path: path[i]
+          // });
+          for (let points of _this.points_test) {
+            for (let point of points) {
+              for (var i = 0; i < 3; ++i) {
+                let isin = AMap.GeometryUtil.isPointInRing(point.pos, path[i])
+                this.sum[i] += isin
+              }
+
+              let mx = 100, mx_id = 0;
+              for (let i in centers) {
+                let distance = Math.pow(centers[i][0] - point.pos[0], 2) + Math.pow(centers[i][1] - point.pos[1], 2);
+                if (distance < mx) {
+                  mx = distance;
+                  mx_id = i;
+                }
+              }
+              _this.sum_cir[mx_id]++;
             }
-          },
-        });
-        this.bondarylayer.setZIndex(1);
-        this.map.addLayer(this.bondarylayer);
-      },
-      //添加市所有区县
-      addText(feature, layer) {
-        let name = feature.properties.name;
-        // let center = feature.properties.center;
-        let location = layer._bounds.getCenter(); //[center[1], center[0]]; //
-        //显示文字
-        var content = `${name}`;
-        // 区县名称文字
-        var text = L.divIcon({
-          html: "<div class='labelStyle'>" + content + "</div>",
-          iconSize: [60, 20],
-          iconAnchor: [0, 10],
-          className: "labelStyle",
-        });
-        let marker = new L.marker(location, { icon: text });
-        //中心点位
-        this.labelGroup.addLayer(marker);
-      },
+          }
+          for (let i in _this.text_cir) {
+            _this.text_cir[i].setText(String(_this.sum_cir[i]))
+            let col = 100*_this.sum_cir[i]/255
+            console.log(col)
+            _this.circles[i].setOptions(
+              {
+                fillColor: "rgb("+255+","+0+","+col+")"
+              }
+            )
+          }
+
+        })
+
+
     },
-  };
-  </script>
-  <style scoped>
-  .leftRightBox {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  /* 地图
-  让olimap 和 rightTxtBox 两个div并排显示
-  */
-  .olimap,
-  .rightTxtBox {
-    flex: 1; /* 平均分配剩余空间 */
-    height: 100%; /* 充满高度 */
-  }
-  .oilMap {
-    /*浮动*/
-    float: left;
-    height: 1000px;
-    width: 1200px;
-  }
-  .rightTxtBox {
-    float: left;
-    width: 300px;
-    height: 1000px;
-    background: #fff;
-    border-radius: 5px;
-    margin-left: 10px;
-    padding: 10px;
-  }
-  </style>
-  
+
+  },
+};
+</script>
+
+<style>
+#container {
+  padding: 0px;
+  margin: 0px;
+  width: 100%;
+  height: 800px;
+}
+</style>

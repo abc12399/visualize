@@ -7,7 +7,8 @@ import mode1 from './components/mode1.vue';
 <template>
   <!-- <HelloWorld>
     </HelloWorld> -->
-    <RoutePlan></RoutePlan>
+    <!-- <RoutePlan></RoutePlan> -->
+    <mode1></mode1>
 </template>
 
 <style scoped>
