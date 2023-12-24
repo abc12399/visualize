@@ -186,7 +186,7 @@ export default {
 #container {
   padding: 0px;
   margin: 0px;
-  width: 100%;
+  width: 70%;
   height: 800px;
 }
 </style>

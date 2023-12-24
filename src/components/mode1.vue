@@ -7,6 +7,7 @@
       四环内车流量：{{ sum[2] }} <br>
     </el-card>
   </div>
+ 
 </template>
 
 <script>
@@ -20,6 +21,23 @@ export default {
     return {
       map: null,
       driving: null,
+      points:[
+            [116.317105, 39.960864],
+            [116.384053, 39.958496],
+            [116.446881, 39.962574],
+            [116.304402, 39.911637],
+            [116.389546, 39.912295],
+            [116.466622, 39.914534],
+            [116.323341, 39.85113],
+            [116.409172, 39.850603],
+            [116.476635, 39.846649],
+            [116.395025,40.010545],
+            [116.204481,39.914233],
+            [116.585569,39.91318],
+            [116.405324,39.808557],
+            [116.502141,39.999762],
+            [116.270055,40.0066],
+            [116.241559,39.822797]],
       points_test: [],
       points_t: [],
       path: [],
@@ -27,7 +45,17 @@ export default {
       sum: [0, 0, 0],
       sum_cir: [],
       circles: [],
-      text_cir: []
+      text_cir: [],
+
+      playIsShow: true, //播放/暂停
+      multipleNumber: 1, //倍速
+      progress: 0, //进度
+      marker: null,
+      polyline1: null,
+      duration: 0,
+      timer: null, //定时器
+      time: 800, //定时器速度,
+      min: 0,
     };
   },
   mounted() {
@@ -232,7 +260,28 @@ export default {
 #container {
   padding: 0px;
   margin: 0px;
-  width: 100%;
-  height: 800px;
+  width: 70%;
+  height: 900px;
+  float: left;
+}
+#rightbox {
+  width: 200px;
+  height: 100px;
+  background-color: white;
+  border-radius: 10px;
+  padding: 10px;
+  z-index: 100;
+  float: left;
+}
+#panel {
+  position: absolute;
+  top: 60px;
+  left: 10px;
+  width: 200px;
+  height: 100px;
+  background-color: white;
+  border-radius: 10px;
+  padding: 10px;
+  z-index: 100;
 }
 </style>

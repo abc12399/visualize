@@ -301,18 +301,18 @@ export default {
 */
 .olimap,
 .rightTxtBox {
-  flex: 1; /* 平均分配剩余空间 */
+  flex: 0.95; /* 平均分配剩余空间 */
   height: 100%; /* 充满高度 */
 }
 .oilMap {
   /*浮动*/
   float: left;
   height: 1000px;
-  width: 1200px;
+  width: 1300px;
 }
 .rightTxtBox {
   float: left;
-  width: 300px;
+  width: 250px;
   height: 1000px;
   background: #fff;
   border-radius: 5px;
